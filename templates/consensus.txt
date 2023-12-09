@@ -6,4 +6,4 @@ The following is a collection of responses to the query `{query}`, enclosed in t
 
 ----
 
-What is the consensus among the above responses?
+What is the consensus among the above responses? Do not include the word "consensus" in your response, just respond with the consensus.

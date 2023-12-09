@@ -12,12 +12,12 @@ import tomllib
 
 ROOT_DIR = Path(__file__).parent
 
+with open("config.toml", "rb") as f:
+    config = tomllib.load(f)
+
 
 @cl.on_chat_start
 async def on_chat_start():
-    with open("config.toml", "rb") as f:
-        config = tomllib.load(f)
-
     model = ChatOpenAI(
         model=config["openai"]["model"],
         temperature=config["openai"]["temperature"],
@@ -69,7 +69,7 @@ async def on_message(message: cl.Message):
     #     await msg.stream_token(chunk)
 
     responses = await runnable.abatch(
-        [{"query": message.content}] * 10,
+        [{"query": message.content}] * config["app"]["experts"],
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     )
 
