@@ -34,13 +34,19 @@ async def on_chat_start():
         timeout=config["openai"]["timeout"],
         streaming=True,
     )
+
+    system_prompt_file = ROOT_DIR / "templates" / "system.txt"
+    system_prompt = ""
+
+    with open(system_prompt_file, "r") as f:
+        system_prompt = f.read()
+
+    system_message = [("system", system_prompt)] if system_prompt else []
+
     query_chain = (
         ChatPromptTemplate.from_messages(
-            [
-                # (
-                #     "system",
-                #     "You are an expert in the fields discussed in this conversation.",
-                # ),
+            system_message
+            + [
                 MessagesPlaceholder(variable_name="history"),
                 ("human", "{query}"),
             ]
@@ -52,7 +58,8 @@ async def on_chat_start():
         template = f.read()
 
     consensus_prompt = ChatPromptTemplate.from_messages(
-        [
+        system_message
+        + [
             # ("system", "You are an expert in the fields discussed in this conversation."),
             MessagesPlaceholder(variable_name="history"),
             ("human", template),

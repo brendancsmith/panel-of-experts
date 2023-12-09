@@ -1,4 +1,4 @@
-The following is a collection of expert responses to the query `{query}`, enclosed in triple: backticks
+The following is a collection of responses to the query `{query}`, each enclosed in triple backticks
 
 ----
 
@@ -6,6 +6,4 @@ The following is a collection of expert responses to the query `{query}`, enclos
 
 ----
 
-If there is a general consensus, respond with a consolidated version of the consensus. If there is strong disagreement, assess the above responses for correctness and discuss the merits of the different answers.
-
-The consensus among experts is:
+Assess each group of similar answers for correctness and completeness of explanation. Paraphrase the majority opinion and also provide the answer that is most correct. Discuss the merits and/or oversights of each answer. 
