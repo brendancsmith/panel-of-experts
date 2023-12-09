@@ -1,0 +1,9 @@
+The following is a collection of responses to the query `{query}`, enclosed in triple: backticks
+
+----
+
+{responses}
+
+----
+
+What is the consensus among the above responses?
