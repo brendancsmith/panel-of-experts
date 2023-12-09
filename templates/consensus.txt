@@ -1,4 +1,4 @@
-The following is a collection of responses to the query `{query}`, enclosed in triple: backticks
+The following is a collection of expert responses to the query `{query}`, enclosed in triple: backticks
 
 ----
 
@@ -6,4 +6,6 @@ The following is a collection of responses to the query `{query}`, enclosed in t
 
 ----
 
-What is the consensus among the above responses? Do not include the word "consensus" in your response, just respond with the consensus.
+If there is a general consensus, respond with a consolidated version of the consensus. If there is strong disagreement, assess the above responses for correctness and discuss the merits of the different answers.
+
+The consensus among experts is:

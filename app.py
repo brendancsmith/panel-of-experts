@@ -3,12 +3,22 @@ from pathlib import Path
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
-from langchain.schema.runnable import Runnable, RunnableParallel, RunnablePassthrough
+from langchain.schema.runnable import (
+    Runnable,
+    RunnableParallel,
+    RunnablePassthrough,
+    RunnableLambda,
+)
 from langchain.schema.runnable.config import RunnableConfig
+from langchain.chains.conversation.base import ConversationChain
 
 import chainlit as cl
 
 import tomllib
+from operator import itemgetter
+from langchain.prompts import MessagesPlaceholder
+from langchain.memory.buffer import ConversationBufferMemory
+from langchain.memory.chat_memory import BaseChatMemory
 
 ROOT_DIR = Path(__file__).parent
 
@@ -31,15 +41,25 @@ async def on_chat_start():
                 #     "system",
                 #     "You are an expert in the fields discussed in this conversation.",
                 # ),
+                MessagesPlaceholder(variable_name="history"),
                 ("human", "{query}"),
             ]
         )
         | model
-        | StrOutputParser()
     )
 
     with open(ROOT_DIR / "templates" / "consensus.txt", "r") as f:
-        consensus_prompt = ChatPromptTemplate.from_template(f.read())
+        template = f.read()
+
+    consensus_prompt = ChatPromptTemplate.from_messages(
+        [
+            # ("system", "You are an expert in the fields discussed in this conversation."),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", template),
+        ]
+    )
+
+    cl.user_session.set("memory", ConversationBufferMemory(return_messages=True))
 
     consensus_chain = consensus_prompt | model | StrOutputParser()
 
@@ -48,16 +68,18 @@ async def on_chat_start():
     #     RunnableParallel(query=RunnablePassthrough(), responses=query_chain.batch)
     #     | consensus_chain
     # )
-    cl.user_session.set("consensus_runnable", consensus_chain)
+    cl.user_session.set("consensus_chain", consensus_chain)
 
-    runnable = query_chain
-    cl.user_session.set("runnable", runnable)
+    cl.user_session.set("query_chain", query_chain)
 
 
 @cl.on_message
 async def on_message(message: cl.Message):
-    runnable: Runnable = cl.user_session.get("runnable")  # type: ignore
-    consensus_runnable: Runnable = cl.user_session.get("consensus_runnable")  # type: ignore
+    runnable: Runnable = cl.user_session.get("query_chain")  # type: ignore
+    consensus_chain: Runnable = cl.user_session.get("consensus_chain")  # type: ignore
+    memory: BaseChatMemory = cl.user_session.get("memory")  # type: ignore
+
+    print("MEMORY BEFORE:", memory.chat_memory)
 
     msg = cl.Message(content="")
 
@@ -68,17 +90,26 @@ async def on_message(message: cl.Message):
     # ):
     #     await msg.stream_token(chunk)
 
-    responses = await runnable.abatch(
+    memory_passthrough = RunnablePassthrough.assign(
+        history=RunnableLambda(memory.load_memory_variables) | itemgetter("history")
+    )
+
+    responses = await (memory_passthrough | runnable).abatch(
         [{"query": message.content}] * config["app"]["experts"],
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     )
-
     responses = "\n\n".join(f"```\n{r}\n```" for r in responses)
 
-    async for chunk in consensus_runnable.astream(
+    async for chunk in (memory_passthrough | consensus_chain).astream(
         {"query": message.content, "responses": responses},
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     ):
         await msg.stream_token(chunk)
+
+    memory.save_context({"input": message.content}, {"output": msg.content})
+
+    print("MEMORY AFTER:", memory)
+
+    cl.user_session.set("memory", memory)
 
     await msg.send()
