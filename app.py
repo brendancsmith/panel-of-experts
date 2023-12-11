@@ -1,24 +1,22 @@
 import asyncio
+import tomllib
+from operator import itemgetter
 from pathlib import Path
+
+import chainlit as cl
+from langchain.chains.conversation.base import ConversationChain
 from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from langchain.memory.buffer import ConversationBufferMemory
+from langchain.memory.chat_memory import BaseChatMemory
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import (
     Runnable,
+    RunnableLambda,
     RunnableParallel,
     RunnablePassthrough,
-    RunnableLambda,
 )
 from langchain.schema.runnable.config import RunnableConfig
-from langchain.chains.conversation.base import ConversationChain
-
-import chainlit as cl
-
-import tomllib
-from operator import itemgetter
-from langchain.prompts import MessagesPlaceholder
-from langchain.memory.buffer import ConversationBufferMemory
-from langchain.memory.chat_memory import BaseChatMemory
 
 ROOT_DIR = Path(__file__).parent
 
