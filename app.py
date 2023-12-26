@@ -1,9 +1,9 @@
 import asyncio
-import tomllib
 from operator import itemgetter
 from pathlib import Path
 
 import chainlit as cl
+import openai
 from langchain.chat_models import ChatOpenAI
 from langchain.memory.buffer import ConversationBufferMemory
 from langchain.memory.chat_memory import BaseChatMemory
@@ -17,22 +17,22 @@ from langchain.schema.runnable import (
 )
 from langchain.schema.runnable.config import RunnableConfig
 
-ROOT_DIR = Path(__file__).parent
-
-with open("config.toml", "rb") as f:
-    config = tomllib.load(f)
+from config import Config
+from constants import ROOT_DIR, TEMPLATES_DIR
 
 
 @cl.on_chat_start
 async def on_chat_start():
+    config = Config()
+
     model = ChatOpenAI(
-        model=config["openai"]["model"],
-        temperature=config["openai"]["temperature"],
-        timeout=config["openai"]["timeout"],
+        model=config.openai.model,
+        temperature=config.openai.temperature,
+        timeout=config.openai.timeout,
         streaming=True,
     )
 
-    system_prompt_file = ROOT_DIR / "templates" / "system.txt"
+    system_prompt_file = TEMPLATES_DIR / "system.txt"
     system_prompt = ""
 
     with open(system_prompt_file, "r") as f:
@@ -51,7 +51,7 @@ async def on_chat_start():
         | model
     )
 
-    with open(ROOT_DIR / "templates" / "consensus.txt", "r") as f:
+    with open(TEMPLATES_DIR / "consensus.txt", "r") as f:
         template = f.read()
 
     consensus_prompt = ChatPromptTemplate.from_messages(
@@ -64,6 +64,7 @@ async def on_chat_start():
 
     consensus_chain = consensus_prompt | model | StrOutputParser()
 
+    cl.user_session.set("config", config)
     cl.user_session.set("memory", ConversationBufferMemory(return_messages=True))
     cl.user_session.set("consensus_chain", consensus_chain)
     cl.user_session.set("query_chain", query_chain)
@@ -71,6 +72,7 @@ async def on_chat_start():
 
 @cl.on_message
 async def on_message(message: cl.Message):
+    config: Config = cl.user_session.get("config")  # type: ignore
     runnable: Runnable = cl.user_session.get("query_chain")  # type: ignore
     consensus_chain: Runnable = cl.user_session.get("consensus_chain")  # type: ignore
     memory: BaseChatMemory = cl.user_session.get("memory")  # type: ignore
@@ -82,7 +84,7 @@ async def on_message(message: cl.Message):
     )
 
     responses = await (memory_passthrough | runnable).abatch(
-        [{"query": message.content}] * config["app"]["experts"],
+        [{"query": message.content}] * config.app.experts,
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     )
     responses = "\n\n".join(f"```\n{r}\n```" for r in responses)
