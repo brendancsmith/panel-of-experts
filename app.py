@@ -4,7 +4,6 @@ from operator import itemgetter
 from pathlib import Path
 
 import chainlit as cl
-from langchain.chains.conversation.base import ConversationChain
 from langchain.chat_models import ChatOpenAI
 from langchain.memory.buffer import ConversationBufferMemory
 from langchain.memory.chat_memory import BaseChatMemory
@@ -58,23 +57,15 @@ async def on_chat_start():
     consensus_prompt = ChatPromptTemplate.from_messages(
         system_message
         + [
-            # ("system", "You are an expert in the fields discussed in this conversation."),
             MessagesPlaceholder(variable_name="history"),
             ("human", template),
         ]
     )
 
-    cl.user_session.set("memory", ConversationBufferMemory(return_messages=True))
-
     consensus_chain = consensus_prompt | model | StrOutputParser()
 
-    # TODO: figure out how to chain this with LCEL
-    # runnable = (
-    #     RunnableParallel(query=RunnablePassthrough(), responses=query_chain.batch)
-    #     | consensus_chain
-    # )
+    cl.user_session.set("memory", ConversationBufferMemory(return_messages=True))
     cl.user_session.set("consensus_chain", consensus_chain)
-
     cl.user_session.set("query_chain", query_chain)
 
 
@@ -84,16 +75,7 @@ async def on_message(message: cl.Message):
     consensus_chain: Runnable = cl.user_session.get("consensus_chain")  # type: ignore
     memory: BaseChatMemory = cl.user_session.get("memory")  # type: ignore
 
-    print("MEMORY BEFORE:", memory.chat_memory)
-
-    msg = cl.Message(content="")
-
-    # TODO: figure out how to chain this with LCEL
-    # async for chunk in runnable.astream(
-    #     {"query": message.content},
-    #     config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
-    # ):
-    #     await msg.stream_token(chunk)
+    response = cl.Message(content="")
 
     memory_passthrough = RunnablePassthrough.assign(
         history=RunnableLambda(memory.load_memory_variables) | itemgetter("history")
@@ -109,12 +91,10 @@ async def on_message(message: cl.Message):
         {"query": message.content, "responses": responses},
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     ):
-        await msg.stream_token(chunk)
+        await response.stream_token(chunk)
 
-    memory.save_context({"input": message.content}, {"output": msg.content})
-
-    print("MEMORY AFTER:", memory)
+    memory.save_context({"input": message.content}, {"output": response.content})
 
     cl.user_session.set("memory", memory)
 
-    await msg.send()
+    await response.send()
