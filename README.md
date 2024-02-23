@@ -1,5 +1,8 @@
 # Panel of Experts
 
+[![CodeFactor](https://www.codefactor.io/repository/github/brendancsmith/panel-of-experts/badge)](https://www.codefactor.io/repository/github/brendancsmith/panel-of-experts)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/brendancsmith/panel-of-experts/python-package.yml)
+
 10 stochastic parrots are better than 1 🦜
 
 This is a small chatbot app using the OpenAI API through LangChain and the Chainlit web interface. It queries OpenAI multiple times in parallel and then produces a consensus answer.
