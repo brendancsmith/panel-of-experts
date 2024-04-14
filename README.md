@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 Settings in `config.toml`:
 
-- Recommended to change the model from `gpt-3.5-turbo` to `gpt-4-1106-preview` for better results.
+- Recommended to change the model from `gpt-3.5-turbo` to `gpt-4-turbo-2024-04-09` for better results.
 
 ## Usage
 
