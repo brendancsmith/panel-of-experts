@@ -15,8 +15,8 @@ class AttrDict(MutableMapping):
     def __getattr__(self, item):
         try:
             return self._data[item]
-        except KeyError:
-            raise AttributeError(f"'AttrDict' object has no attribute '{item}'")
+        except KeyError as e:
+            raise AttributeError(f"'AttrDict' object has no attribute '{item}'") from e
 
     def __setattr__(self, key, value):
         # self._data[key] = value
