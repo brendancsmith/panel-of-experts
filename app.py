@@ -87,7 +87,7 @@ async def on_message(message: cl.Message):
         [{"query": message.content}] * config.app.experts,
         config=RunnableConfig(callbacks=[cl.LangchainCallbackHandler()]),
     )
-    responses = "\n\n".join(f"```\n{r}\n```" for r in responses)
+    responses = "\n\n".join(f"```\n{r.content}\n```" for r in responses)
 
     async for chunk in (memory_passthrough | consensus_chain).astream(
         {"query": message.content, "responses": responses},
